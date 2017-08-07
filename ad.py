@@ -1,130 +1,67 @@
-from turtle import *
-from time import time, sleep
-from random import randint
-from subprocess import Popen
-import sys, glob
+#the next line is only needed for python2.x and not necessary for python3.x
+from __future__ import print_function, division
 
-def play_sound(name, vol=100):
-    try:
-      Popen(["mplayer", "-softvol", "-really-quiet", "-volume", str(vol), name+".mp3"])
-    except:
-        pass
+import pygame
+import os
+import sys
 
-screensize(216,500)
-setup(288,512)
-tracer(False,0)
-hideturtle()
-for f in glob.glob("*.gif"):
-    addshape(f)
+# if using python2, the get_input command needs to act like raw_input:
+if sys.version_info[:2] <= (2, 7):
+    get_input = raw_input
+else:
+    get_input = input # python3
+        
 
-font_name = "Comic Sans MS"
-speed_x = 100
-ground_line = -200+56+12
-tube_dist=230
-bg_width=28
+pygame.mixer.pre_init(44100, -16, 2, 2048) # setup mixer to avoid sound lag
+pygame.init()                              #initialize pygame
 
-def TextTurtle(x,y, color):
-    t = Turtle()
-    t.hideturtle()
-    t.up()
-    t.goto(x,y)
-    t.speed(0)
-    t.color(color)
-    return t
+# look for sound & music files in subfolder 'data'
+pygame.mixer.music.load
+jump = pygame.mixer.Sound
+fail = pygame.mixer.Sound
 
-def GIFTurtle(fname):
-    t = Turtle(fname+".gif")
-    t.speed(0)
-    t.up()
-    return t
+# play music non-stop
+pygame.mixer.music.play(-1)                           
 
-score_txt = TextTurtle(0, 130, "white")
-best_txt = TextTurtle(90, 180, "white")
-bgpic("bg1.gif")
-tubes = [(GIFTurtle("tube1"), GIFTurtle("tube2")) for i in range(3)]
-grounds = [GIFTurtle("ground") for i in range(3)]
-bird = GIFTurtle("bird1")
+# game loop
+gameloop = True
 
-class Game:
-    state = "end"
-    score = best = 0
-game = Game()
+while gameloop:
+    # indicate if music is playing
+    if pygame.mixer.music.get_busy():
+        print(" ... music is playing")
+    else: 
+        print(" ... music is not playing")
+    # print menu 
+    print("please press key:")
+    print("[a] to play 'jump.wav' sound")
+    print("[b] to play 'fail.wav' sound")
+    print("[m] to toggle music on/off")
+    print("[q] to quit")
+    answer = get_input("press key [a] or [b] or [m] or [q], followed by [ENTER]")
+    answer = answer.lower() # force lower case
+    if "a" in answer:
+        jump.play()
+        print("playing jump.wav once")
+    elif "b" in answer:
+        fail.play()
+        print("playing fail.wav once")
+    elif "m" in answer:
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.stop()
+        else:
+            pygame.mixer.music.play()
+    elif "q" in answer:
+        #break from gameloop
+        gameloop = False
+    else:
+        print("please press either [a], [b], [m] or [q] and [ENTER]")
 
-def start_game(game):
-    game.best = max(game.score, game.best)
-    game.tubes_y = [10000]*3
-    game.hit_t, game.hit_y = 0, 0
-    game.state = "alive"
-    game.tube_base = 0
-    game.score = 0
-    game.start_time = time()
-    update_game(game)
 
-def compute_y(t, game):
-       return  game.hit_y - 100*(t-game.hit_t)*(t-game.hit_t-1
+print("bye-bye")
 
-def update_game(game):    
-    if game.state=="dead":
-       play_sound("clickclick")
-        sleep(2)
-        game.state="end"
-        return
-    t = time() - game.start_time    
-    bird_y= compute_y(t, game)    
-    if bird_y <= ground_line:
-        bird_y= ground_line        
-        game.state="dead"
-    x = int(t*speed_x)
-        tube_base = -(x%tube_dist)-40
-       if game.tube_base < tube_base:
-         if game.tubes_y[2] < 1000:
-            game.score +=1
-            play_sound("bip")
-        game.tubes_y=game.tubes_y[1:]+[randint(-100,50)]     
-    game.tube_base = tube_base
-    for i in range(3):
-        tubes[i][0].goto(tube_base+tube_dist*(i-1),250+game.tubes_y[i])
-        tubes[i][1].goto(tube_base+tube_dist*(i-1),-150+game.tubes_y[i])
-        if game.tubes_y[2] < 1000:
-        tube_left = tube_base+tube_dist-28
-        tube_right = tube_base+tube_dist+28
-        tube_upper = game.tubes_y[2]+250-160
-        tube_lower = game.tubes_y[2]-150+160
-        center = Vec2D(0, bird_y-2)
-        lvec = Vec2D(tube_left, tube_upper)-center
-        rvec = Vec2D(tube_right, tube_upper)-center
-        if (tube_left <18 and tube_right>-18) and bird_y-12<= tube_lower:
-            game.state="dead"            
-        if (tube_left <=8 and tube_right>=-8) and bird_y+12 >= tube_upper:
-            game.state="dead"                        
-        if abs(lvec)<14 or abs(rvec)<14:            
-            game.state="dead"            
-    bg_base = -(x%bg_width)
-    for i in range(3):
-        grounds[i].goto(bg_base+bg_width*(i-1),-200)    
-    bird.shape( "bird%d.gif"%abs(int(t*4)%4-1) )
-    bird.goto(0, bird_y)    
-    score_txt.clear()
-    score_txt.write("%s"%(game.score), align="center", font=(font_name, 80, "bold"))
-    if game.best_txt.clear()
-        best_txt.write("BEST: %d"%(game.best), align="center", font=(font_name, 14, "bold"))        
-    update()    
-    ontimer(lambda :update_game(game), 10)
 
-def fly(game=game):
-    if game.state=="end":  
-        start_game(game)        
-        return
-    t = time()-game.start_time
-    bird_y= compute_y(t, game)
-    if bird_y > ground_line:            
-        game.hit_t, game.hit_y = t, bird_y
-        play_sound("tack", 20)
 
-onkey(fly, "space")
-listen()
-mainloop()
-sys.exit(1)
 
 
 
